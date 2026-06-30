@@ -1,0 +1,216 @@
+import { useEffect, useState } from 'react';
+import * as Comlink from 'comlink';
+import { getHardwareDiagnostics, type HardwareDiagnostics } from './core/diagnostics';
+import DiagnosticsCard from './components/DiagnosticsCard';
+import HighlighterView from './components/HighlighterView';
+import type { PIIEntity } from './core/types';
+import type { ProgressCallback } from './worker';
+
+const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+const api = Comlink.wrap<any>(worker);
+
+function App() {
+  const [diagnostics, setDiagnostics] = useState<HardwareDiagnostics | null>(null);
+  const [appState, setAppState] = useState<'idle' | 'initializing' | 'ready' | 'processing' | 'done'>('idle');
+  const [progress, setProgress] = useState<number>(0);
+  const [progressText, setProgressText] = useState<string>('');
+  
+  const [inputText, setInputText] = useState<string>('Hello, my name is John Doe and my email is john.doe@example.com. Call me at +1 555-123-4567 or on my Indian number +91 9876543210. My SSN is 123-45-6789 and my card is 1234-5678-9012-3456.');
+  const [entities, setEntities] = useState<PIIEntity[]>([]);
+
+  useEffect(() => {
+    async function fetchDiagnostics() {
+      const result = await getHardwareDiagnostics();
+      setDiagnostics(result);
+    }
+    fetchDiagnostics();
+  }, []);
+
+  const handleInitialize = async () => {
+    if (!diagnostics) return;
+    setAppState('initializing');
+    
+    const onProgress: ProgressCallback = Comlink.proxy((msg) => {
+      if (msg.status === 'downloading' || msg.status === 'progress') {
+        if (msg.total && msg.loaded) {
+          setProgress(Math.round((msg.loaded / msg.total) * 100));
+          setProgressText(`DOWNLOADING ${msg.file || 'MODEL'}`);
+        }
+      } else if (msg.status === 'done') {
+        setProgress(100);
+        setProgressText(`LOADED ${msg.file || 'MODEL'}`);
+      } else if (msg.status === 'ready') {
+        setAppState('ready');
+      }
+    });
+
+    const success = await api.initEngine(diagnostics, onProgress);
+    if (success) {
+      setAppState('ready');
+    } else {
+      alert("FAILED TO INITIALIZE AI ENGINE");
+      setAppState('idle');
+    }
+  };
+
+  const handleAnalyze = async () => {
+    if (!inputText.trim()) return;
+    setAppState('processing');
+    try {
+      const results: PIIEntity[] = await api.sanitizeDocument(inputText);
+      setEntities(results);
+      setAppState('done');
+    } catch (e) {
+      console.error(e);
+      alert("ERROR PROCESSING DOCUMENT");
+      setAppState('ready');
+    }
+  };
+
+  const applyRedactions = async () => {
+    if (!entities.length) return;
+    
+    let redactedText = '';
+    let cursor = 0;
+    const sorted = [...entities].sort((a, b) => a.start - b.start);
+    
+    for (const entity of sorted) {
+      if (entity.start < cursor) continue;
+      redactedText += inputText.substring(cursor, entity.start);
+      redactedText += '[REDACTED]';
+      cursor = entity.end;
+    }
+    redactedText += inputText.substring(cursor);
+    
+    try {
+      await navigator.clipboard.writeText(redactedText);
+      alert('REDACTED TEXT COPIED TO CLIPBOARD!');
+    } catch (err) {
+      console.error(err);
+      alert('FAILED TO COPY');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f4f4f0] text-black font-sans p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <header className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          <h1 className="text-6xl md:text-6xl font-black uppercase tracking-tighter">CENSORED</h1>
+          <p className="text-m font-bold uppercase mt-2 bg-black text-white inline-block px-2 py-1">Zero-Server PII Sanitization</p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column: Diagnostics & Controls */}
+          <div className="space-y-6">
+            <DiagnosticsCard diagnostics={diagnostics} />
+
+            <div className="border-4 border-black bg-[#E1FF50] p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="font-black uppercase text-2xl mb-4 border-b-4 border-black pb-2">AI Engine Control</h2>
+              
+              {appState === 'idle' && (
+                <button 
+                  onClick={handleInitialize}
+                  disabled={!diagnostics}
+                  className="w-full bg-[#53C6FD] hover:bg-[#00CCCC] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none border-4 border-black font-black uppercase py-4 text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Initialize AI Engine"
+                >
+                  START ENGINE
+                </button>
+              )}
+              
+              {appState === 'initializing' && (
+                <div aria-live="polite" aria-atomic="true" className="space-y-2">
+                  <div className="flex justify-between font-black uppercase text-sm">
+                    <span className="truncate pr-2">{progressText || 'INITIALIZING...'}</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="h-6 w-full bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <div 
+                      className="h-full bg-[#FF00FF] transition-all"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {(appState === 'ready' || appState === 'processing' || appState === 'done') && (
+                <div className="bg-[#F85A4B] border-4 border-black p-3 text-center font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" role="status">
+                  ENGINE ACTIVE
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Analyzer Area */}
+          <div className="lg:col-span-2">
+            {(appState === 'idle' || appState === 'initializing') ? (
+              <div className="border-4 border-black bg-white p-12 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] h-full flex flex-col items-center justify-center text-center">
+                <div className="text-8xl mb-6">⚠️</div>
+                <h3 className="text-4xl font-black uppercase mb-4">Awaiting Engine</h3>
+                <p className="text-xl font-bold uppercase bg-[#FF0000] text-white p-2">Start the engine to scan for PII.</p>
+              </div>
+            ) : (
+              <div className="border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6">
+                <div className="flex justify-between items-end border-b-4 border-black pb-4">
+                  <h2 className="text-3xl font-black uppercase">Document Analyzer</h2>
+                  {appState === 'done' && (
+                    <button 
+                      onClick={applyRedactions}
+                      className="bg-[#00FF00] hover:bg-[#00CC00] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none border-4 border-black font-black uppercase px-6 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all"
+                      aria-label="Apply Redactions and Copy"
+                    >
+                      APPLY REDACTIONS
+                    </button>
+                  )}
+                </div>
+                
+                {appState === 'ready' || appState === 'processing' ? (
+                  <div className="space-y-6">
+                    <textarea 
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      disabled={appState === 'processing'}
+                      className="w-full min-h-[300px] p-4 bg-[#f4f4f0] border-4 border-black font-mono text-lg shadow-[inset_4px_4px_0px_0px_rgba(0,0,0,0.2)] focus:outline-none focus:ring-4 focus:ring-[#FF00FF] disabled:opacity-50"
+                      placeholder="PASTE SENSITIVE DOCUMENT HERE..."
+                      aria-label="Input document text"
+                    />
+                    <button 
+                      onClick={handleAnalyze}
+                      disabled={appState === 'processing'}
+                      className="w-full bg-[#FF00FF] hover:bg-[#CC00CC] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none text-white border-4 border-black font-black uppercase py-4 text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-busy={appState === 'processing'}
+                    >
+                      {appState === 'processing' ? 'SCANNING...' : 'SCAN FOR PII'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="bg-[#FFFF00] border-4 border-black p-4 flex justify-between items-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                      <span className="font-black uppercase text-xl">
+                        FOUND <span className="bg-[#FF0000] text-white px-2 py-0.5">{entities.length}</span> SENSITIVE ENTITIES
+                      </span>
+                      <button 
+                        onClick={() => setAppState('ready')}
+                        className="bg-white hover:bg-gray-200 border-4 border-black font-bold uppercase px-4 py-1 active:translate-x-[2px] active:translate-y-[2px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none transition-all"
+                        aria-label="Scan another document"
+                      >
+                        RESET
+                      </button>
+                    </div>
+                    <HighlighterView text={inputText} entities={entities} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
