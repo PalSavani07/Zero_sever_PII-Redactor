@@ -24,27 +24,27 @@ export default function DiagnosticsCard({ diagnostics }: Props) {
       
       <div className="flex items-center justify-between bg-white border-2 border-black p-3 font-bold">
         <span className="uppercase">Memory (RAM)</span>
-        <span className={`px-2 border-2 border-black ${diagnostics.memoryStatus === 'good' ? 'bg-[#67D044]' : 'bg-[#FF0000] text-white'}`}>
+        <span className={`px-2 border-2 border-black ${diagnostics.memoryStatus === 'good' ? 'bg-[#FF4F00]' : 'bg-[#FF0000] text-white'}`}>
           {diagnostics.memoryStatus === 'good' ? '≥ 4GB' : '< 4GB'}
         </span>
       </div>
       
       <div className="flex items-center justify-between bg-white border-2 border-black p-3 font-bold">
         <span className="uppercase">WebGPU</span>
-        <span className={`px-2 border-2 border-black ${diagnostics.webGPUSupport ? 'bg-[#00FFFF]' : 'bg-[#FFFF00]'}`}>
+        <span className={`px-2 border-2 border-black ${diagnostics.webGPUSupport ? 'bg-[#00BFFF]' : 'bg-[#FFFF00]'}`}>
           {diagnostics.webGPUSupport ? 'AVAILABLE' : 'CPU FALLBACK'}
         </span>
       </div>
       
       {isRegexOnly && (
-        <div className="bg-[#FF0000] border-4 border-black p-4 mt-2" role="alert">
+        <div className="bg-[#00BFFF] border-4 border-black p-4 mt-2" role="alert">
           <p className="font-black text-black uppercase text-center text-lg">
             WARNING: LOW MEMORY DETECTED. RUNNING IN REGEX-ONLY MODE.
           </p>
         </div>
       )}
       {!isRegexOnly && diagnostics.webGPUSupport && (
-        <div className="bg-[#67D044] border-4 border-black p-3 mt-2" role="status">
+        <div className="bg-[#A388EE] border-4 border-black p-3 mt-2" role="status">
           <p className="font-black text-black uppercase text-center">
             READY FOR HIGH-PERFORMANCE WEBGPU EXECUTION
           </p>

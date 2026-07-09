@@ -15,7 +15,7 @@ function App() {
   const [progress, setProgress] = useState<number>(0);
   const [progressText, setProgressText] = useState<string>('');
   
-  const [inputText, setInputText] = useState<string>('Hello, my name is John Doe and my email is john.doe@example.com. Call me at +1 555-123-4567 or on my Indian number +91 9876543210. My SSN is 123-45-6789 and my card is 1234-5678-9012-3456.');
+  const [inputText, setInputText] = useState<string>();
   const [entities, setEntities] = useState<PIIEntity[]>([]);
 
   useEffect(() => {
@@ -107,14 +107,14 @@ function App() {
           <div className="space-y-6">
             <DiagnosticsCard diagnostics={diagnostics} />
 
-            <div className="border-4 border-black bg-[#E1FF50] p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="border-4 border-black bg-[#FFFF00] p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
               <h2 className="font-black uppercase text-2xl mb-4 border-b-4 border-black pb-2">AI Engine Control</h2>
               
               {appState === 'idle' && (
                 <button 
                   onClick={handleInitialize}
                   disabled={!diagnostics}
-                  className="w-full bg-[#53C6FD] hover:bg-[#00CCCC] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none border-4 border-black font-black uppercase py-4 text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-[#FFFFFF] hover:bg-[#00CCCC] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none border-4 border-black font-black uppercase py-4 text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   aria-label="Initialize AI Engine"
                 >
                   START ENGINE
@@ -137,7 +137,7 @@ function App() {
               )}
 
               {(appState === 'ready' || appState === 'processing' || appState === 'done') && (
-                <div className="bg-[#F85A4B] border-4 border-black p-3 text-center font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" role="status">
+                <div className="bg-[#FF69B4] border-4 border-black p-3 text-center font-black uppercase text-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" role="status">
                   ENGINE ACTIVE
                 </div>
               )}
@@ -180,7 +180,7 @@ function App() {
                     <button 
                       onClick={handleAnalyze}
                       disabled={appState === 'processing'}
-                      className="w-full bg-[#FF00FF] hover:bg-[#CC00CC] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none text-white border-4 border-black font-black uppercase py-4 text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-[#FF69B4] hover:bg-[#CC00CC] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none text-white border-4 border-black font-black uppercase py-4 text-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-busy={appState === 'processing'}
                     >
                       {appState === 'processing' ? 'SCANNING...' : 'SCAN FOR PII'}
