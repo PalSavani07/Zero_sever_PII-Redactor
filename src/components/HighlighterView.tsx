@@ -16,6 +16,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   'ORG': 'bg-[#FF8800]', // Orange
   'LOC': 'bg-[#0088FF] text-white', // Blue
   'DATE': 'bg-[#FFBBBB]', // Pink
+  'JWT': 'bg-[#9400D3] text-white', // Deep Purple
+  'PRIVATE_KEY': 'bg-black text-[#00FF00]', // Hacker Green on Black
+  'GENERIC_SECRET': 'bg-[#FF4500] text-white', // OrangeRed
+  'AWS_ACCESS_KEY': 'bg-[#FF9900] text-black', // AWS Orange
+  'CVV': 'bg-[#FF0000] text-white', // Same as SSN, aggressive Red
+  'EXPIRY_DATE': 'bg-[#FF0000] text-white',
+  'SENDGRID_KEY': 'bg-[#0000FF] text-[#00FFFF]',
+  'INTERNAL_SYSTEM': 'bg-[#FF6600] text-black', // Hazard Orange
+  'CONFIDENTIAL_PROJECT': 'bg-[#39FF14] text-black', // Neon Green
 };
 
 const DEFAULT_COLOR = 'bg-black text-white';

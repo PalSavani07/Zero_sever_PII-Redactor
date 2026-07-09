@@ -74,6 +74,9 @@ export async function sanitizeDocument(text: string): Promise<PIIEntity[]> {
     for (const entity of entities) {
       if (!entity || !entity.word) continue;
       
+      // Filter out low-confidence AI hallucinations
+      if (entity.score < 0.75) continue;
+      
       const rawWord = entity.word as string;
       const normalizedWord = rawWord.replace(/\u2581/g, ' ').trim();
       
@@ -112,7 +115,37 @@ export async function sanitizeDocument(text: string): Promise<PIIEntity[]> {
   const pooledEntities = [...regexEntities, ...aiEntities];
   const finalEntities = overlapReconciliation(pooledEntities, text);
 
-  return finalEntities;
+  // 5. Boundary Snapping & Hallucination Defense
+  const isPunct = (char: string) => /[\s\-.,;:'"!?()\[\]{}<>]/.test(char);
+  const isAlphaNum = (char: string) => /[a-zA-Z0-9]/.test(char);
+  
+  for (const entity of finalEntities) {
+    // A. Punctuation snapping
+    while (entity.start < entity.end && isPunct(text[entity.start])) {
+      entity.start++;
+    }
+    while (entity.end > entity.start && isPunct(text[entity.end - 1])) {
+      entity.end--;
+    }
+    
+    // B. Subword Hallucination Defense
+    // If the entity starts or ends in the middle of a continuous alphanumeric word,
+    // it is a subword tokenization failure (like "er" inside "server"). 
+    // We invalidate it by collapsing its boundaries.
+    if (entity.start > 0 && isAlphaNum(text[entity.start - 1])) {
+      entity.start = entity.end;
+    }
+    if (entity.end < text.length && isAlphaNum(text[entity.end])) {
+      entity.start = entity.end;
+    }
+
+    if (entity.start < entity.end) {
+      entity.word = text.substring(entity.start, entity.end);
+    }
+  }
+
+  // Return strictly valid spans that survived boundary snapping and hallucination defense
+  return finalEntities.filter(e => e.start < e.end);
 }
 
 // Expose the worker methods via Comlink
