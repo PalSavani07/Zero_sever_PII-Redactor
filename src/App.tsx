@@ -15,7 +15,7 @@ function App() {
   const [progress, setProgress] = useState<number>(0);
   const [progressText, setProgressText] = useState<string>('');
   
-  const [inputText, setInputText] = useState<string>();
+  const [inputText, setInputText] = useState<string>('');
   const [entities, setEntities] = useState<PIIEntity[]>([]);
 
   useEffect(() => {

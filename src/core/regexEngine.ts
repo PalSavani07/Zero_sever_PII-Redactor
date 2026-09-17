@@ -102,7 +102,7 @@ const PATTERNS: PatternDef[] = [
     // Catches unquoted secrets, generic assignments including session cookies. 
     // match[1] = key name, match[2] = operator, match[3] = payload
     regex: /((?:key|api|token|secret|password|auth|session|cookie)[\w.,-]{0,25})([=>:]|:=)[ \t]{0,5}['"]?([\w=\-%.]{16,128})['"]?/gi,
-    validate: (match, text) => {
+    validate: (match, _text) => {
       // match[3] is the extracted secret payload
       return calculateEntropy(match[3]) > 3.0;
     }
